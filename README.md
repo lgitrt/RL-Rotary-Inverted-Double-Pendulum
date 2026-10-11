@@ -8,6 +8,8 @@ A rotary double inverted pendulum, controlled with **reinforcement learning (RL)
 
 Swing the double pendulum up and move it through all four equilibrium positions as a transition control: both links down, both up, and the two mixed configurations (one link up, one down). The main approach is an RL policy trained in simulation and deployed on the real system. MPC is explored on the same hardware so both methods can be compared on the same task.
 
+**Approach:** I plan to implement everything myself, from the mechanical design to the simulation, the reinforcement-learning pipeline and the MPC, without copying designs or setups from other projects.
+
 ## Hardware
 
 - Compact build: 45 cm high, 2 x 20 cm pendulum links, 10 cm base radius
