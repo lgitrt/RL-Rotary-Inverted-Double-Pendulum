@@ -2,3 +2,6 @@
 OldVersions/
 CAD/imports/
 CAD/renderings/whole_assembly_render.png
+CAD/renderings/render_single_images/ffmpeg.exe
+__pycache__/
+CAD/renderings/render_single_images/*.png

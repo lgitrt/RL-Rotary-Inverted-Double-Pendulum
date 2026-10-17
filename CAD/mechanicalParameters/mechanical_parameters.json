@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "units": {
+    "mass": "kg",
+    "length": "m",
+    "inertia": "kg*m^2",
+    "angle": "rad"
+  },
+  "notes": [
+    "Replace all zero values with values exported from CAD or measured.",
+    "Each component's reference frame origin is at its primary shaft or bearing axis, with x as the rotation axis.",
+    "Define the joint frame y and z directions consistently; the rotation axis alone does not define the full frame.",
+    "For driveUnit and mainAxis, inertia_about_rotation_axis_kg_m2 is the inertia about the stated reference-frame x axis, not about the COM.",
+    "Use center-of-mass offsets for components whose translation or gravity effects are modeled; they are omitted for these single-axis entries.",
+    "Replace placeholder values with CAD-exported or measured values."
+  ],
+  "parts": {
+    "driveUnit": {
+      "is_placeholder": false,
+      "reference_frame": {
+        "origin": "center of drive motor output shaft",
+        "rotation_axis": [1.0, 0.0, 0.0]
+      },
+      "mass_kg": 0.223,
+      "inertia_about_rotation_axis_kg_m2": 101.599e-6
+    },
+    "mainAxis": {
+      "is_placeholder": false,
+      "reference_frame": {
+        "origin": "center of main shaft rotation axis",
+        "rotation_axis": [1.0, 0.0, 0.0]
+      },
+      "mass_kg": 0.43,
+      "inertia_about_rotation_axis_kg_m2": 869.667e-6
+    },
+    "pendulum1": {
+      "is_placeholder": false,
+      "reference_joint": "main_shaft_to_pendulum_1_bearing",
+      "reference_frame": {
+        "origin": "center of pendulum_1 bearing axis",
+        "rotation_axis": [1.0, 0.0, 0.0]
+      },
+      "mass_kg": 0.17,
+      "com_from_reference_m": [74.344e-3, 0.0, 42.144e-3],
+      "inertia_tensor_com_kg_m2": [
+        [948.505e-6, 0.0, -381.96e-6],
+        [0.0, 1429.777e-6, 0.0],
+        [-381.96e-6, 0.0, 495.234e-6]
+      ]
+    },
+    "pendulum2": {
+      "is_placeholder": false,
+      "reference_joint": "pendulum_1_to_pendulum_2_bearing",
+      "reference_frame": {
+        "origin": "center of pendulum_2 bearing axis",
+        "rotation_axis": [1.0, 0.0, 0.0]
+      },
+      "mass_kg": 0.113,
+      "com_from_reference_m": [14.578e-3, 192.937e-3, 0.0],
+      "inertia_tensor_com_kg_m2": [
+        [788.348e-6, -37.798e-6, 0.0],
+        [-37.798e-6, 20.049e-6, 0.0],
+        [0.0, 0.0, 793.988e-6]
+      ]
+    }
+  }
+}

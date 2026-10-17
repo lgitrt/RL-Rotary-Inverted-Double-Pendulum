@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<robot name="rotary_double_pendulum">
+  <!-- Meshes are relative to this URDF. Their STL frame/orientation must match each link frame. -->
+
+  <!-- MuJoCo-only settings, ignored by other parsers (including Isaac Sim).
+       balanceinertia: repairs tensors that slightly violate the triangle inequality.
+       fusestatic=false: keeps the fixed 'base' body instead of merging it into the world. -->
+  <mujoco>
+    <compiler meshdir="." balanceinertia="true" discardvisual="false" fusestatic="false"/>
+  </mujoco>
+
+  <material name="base_grey"><color rgba="0.6 0.6 0.65 1"/></material>
+  <material name="main_axis_blue"><color rgba="0.15 0.4 0.85 1"/></material>
+  <material name="pendulum1_green"><color rgba="0.2 0.7 0.3 1"/></material>
+  <material name="pendulum2_red"><color rgba="0.85 0.2 0.2 1"/></material>
+
+  <!-- Explicit world anchor so the base is fixed in every simulator. -->
+  <link name="world"/>
+
+  <link name="base">
+    <visual>
+      <geometry>
+        <mesh filename="AssemblyBase.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="base_grey"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="AssemblyBase.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- The drive unit (motor + pulley) is not a separate link. It is connected to the main axis by a
+       timing belt with ratio 1, so its mass and inertia are lumped onto main_axis (values stay
+       separate in mechanical_parameters.json):
+         mass : 0.43 kg (main axis) + 0.223 kg (drive unit)                   = 0.653 kg
+         Ixx  : 869.667e-6 + 101.599e-6 * ratio^2 (ratio = 1) kg*m^2          = 971.266e-6 kg*m^2
+       The drive unit COM is not modeled; the mass is assumed to act on the rotation axis.
+       Iyy/Izz do not influence the dynamics because the link only rotates about x. They are set
+       equal to Ixx as a valid placeholder (an all-zero or inconsistent tensor is rejected or
+       silently altered by physics engines). Replace with the CAD values if available. -->
+  <link name="main_axis">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.653"/>
+      <inertia ixx="0.000971266" ixy="0" ixz="0"
+               iyy="0.000971266" iyz="0"
+               izz="0.000971266"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="AssemblyMainAxis.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="main_axis_blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="AssemblyMainAxis.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="pendulum1">
+    <inertial>
+      <origin xyz="0.074344 0 0.042144" rpy="0 0 0"/>
+      <mass value="0.17"/>
+      <inertia ixx="0.000948505" ixy="0" ixz="-0.00038196"
+               iyy="0.001429777" iyz="0" izz="0.000495234"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="AssemblyPendulum1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="pendulum1_green"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="AssemblyPendulum1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="pendulum2">
+    <inertial>
+      <origin xyz="0.014578 0.192937 0" rpy="0 0 0"/>
+      <mass value="0.113"/>
+      <inertia ixx="0.000788348" ixy="-0.000037798" ixz="0"
+               iyy="0.000020049" iyz="0" izz="0.000793988"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="AssemblyPendulum2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="pendulum2_red"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="AssemblyPendulum2.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- main_axis_joint is the ONLY actuated joint. It is driven by the motor through the belt:
+       ratio 1, efficiency 0.95. Torque at the main axis = motor torque * 0.95. URDF has no
+       efficiency field, so apply it in the simulation/actuator model.
+       Effort limit = motor peak torque 3.8 Nm * 0.95 = 3.61 Nm. Motor continuous torque is only
+       1 Nm, so clip the commanded torque in the controller if the swing-up must stay within
+       thermal limits.
+       velocity: 805 rpm = 84.3 rad/s (no-load speed, lower under load).
+       Friction placeholders (measure and update): motor bearings, belt and pulleys. -->
+  <joint name="main_axis_joint" type="continuous">
+    <parent link="base"/>
+    <child link="main_axis"/>
+    <origin xyz="0.2844 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="3.61" velocity="84.3"/>
+    <dynamics damping="0.005" friction="0.02"/>
+  </joint>
+
+  <!-- ROS-specific, ignored by Isaac Sim and MuJoCo. Kept for reference. -->
+  <transmission name="main_axis_belt">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="main_axis_joint">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="drive_motor">
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+  </transmission>
+
+  <!-- Passive (unactuated) joints: no effort or velocity limit is given on purpose, so no simulator
+       can interpret a limit as an actuator capability. Friction placeholders (bearings only),
+       measure from free-swing decay and update. -->
+  <joint name="pendulum1_joint" type="continuous">
+    <parent link="main_axis"/>
+    <child link="pendulum1"/>
+    <origin xyz="0.1911 0 0" rpy="0 -1.5708 0"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="0.0005" friction="0.002"/>
+  </joint>
+
+  <joint name="pendulum2_joint" type="continuous">
+    <parent link="pendulum1"/>
+    <child link="pendulum2"/>
+    <origin xyz="0.1175 0.0 0.2" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <dynamics damping="0.0003" friction="0.001"/>
+  </joint>
+</robot>
